@@ -228,13 +228,16 @@ td button { font: inherit; background: none; border: 0; color: var(--rail); curs
 
   <section id="pane-gest" role="tabpanel" aria-labelledby="tab-gest" hidden>
     <div class="panel">
+      <p class="pf-intro">Aqui você vê <b>todos os municípios do Paraná de uma vez</b>. Cada bolinha do mapa é um município, e a cor mostra quanto custa levar a soja dele até Paranaguá. Use os botões para trocar o que a cor mostra e toque num município para simular a safra dele.</p>
       <div class="statline" id="g-stats"></div>
+      <p class="notes" style="margin:-4px 0 12px">Médias dos 398 municípios, cada um com o mesmo peso, sem considerar quanto cada um produz.</p>
       <div class="seg" role="group" aria-label="O que o mapa mostra">
         <button type="button" data-mode="road" aria-pressed="true">Frete só caminhão</button>
         <button type="button" data-mode="best" aria-pressed="false">Melhor rota com trem</button>
         <button type="button" data-mode="save" aria-pressed="false">Economia com o trem</button>
         <button type="button" data-mode="co2" aria-pressed="false">CO₂ evitado</button>
       </div>
+      <p class="pf-legenda" id="g-modo" style="margin-top:10px" aria-live="polite"></p>
       <div class="mapbox" style="margin-top:12px">
         <canvas id="map" aria-label="Mapa dos municípios do Paraná coloridos pelo indicador escolhido"></canvas>
         <div class="tip" id="tip" hidden></div>
@@ -505,7 +508,7 @@ $('map').addEventListener('mouseleave', () => { $('tip').hidden = true; hover = 
 $('map').addEventListener('click', ev => { const h = nearest(ev); if (h) openProd(h.d.m.nome); });
 
 document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
-  mode = b.dataset.mode; document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); drawMap();
+  mode = b.dataset.mode; document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); drawMap(); gModo();
 }));
 
 function showTab(which) {
@@ -800,6 +803,16 @@ $('pf-play').addEventListener('click', () => {
   pfTimer = setTimeout(passo, 3200);
 });
 window.addEventListener('resize', () => { if (!$('pane-pf').hidden) pfRender(false); });
+
+// ---------- explicação do modo do mapa do gestor ----------
+const G_MODOS = {
+  road: '<b>Frete só caminhão:</b> quanto custa levar uma saca até Paranaguá sem usar o trem. Verde escuro é barato (perto do porto); laranja é caro (longe).',
+  best: '<b>Melhor rota com trem:</b> quanto custa por saca usando o terminal ferroviário mais vantajoso para cada município. Compare com o mapa só de caminhão.',
+  save: '<b>Economia com o trem:</b> quantos reais por saca cada município economizaria usando o trem. As cores mais fortes mostram onde a ferrovia mais ajuda.',
+  co2: '<b>CO₂ evitado:</b> quantos quilos de CO₂ deixam de ir para o ar a cada tonelada levada de trem em vez de caminhão. Cores mais fortes, mais poluição evitada.'
+};
+function gModo() { const el = $('g-modo'); if (el) el.innerHTML = G_MODOS[mode] || ''; }
+gModo();
 </script>
 </body>
 </html>
