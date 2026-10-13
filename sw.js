@@ -1,5 +1,5 @@
 // Service worker do Rota da Soja PR: funciona offline e busca dados novos quando há internet.
-const VERSAO = 'rota-soja-v4';
+const VERSAO = 'rota-soja-v5';
 const ARQUIVOS = ['./', 'index.html', 'manifest.webmanifest', 'data/cotacao.json', 'data/frete.json',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png'];
 
