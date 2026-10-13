@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Quanto a soja de cada município do Paraná perde em frete e emite de CO₂ até o Porto de Paranaguá, por caminhão ou com trem.">
+<meta name="theme-color" content="#3f6b2a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Rota da Soja PR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: app de uma coluna no celular, duas no desktop (controles | resultado); abas Produtor / Gestor público */
+:root {
+  --bg: #f4f6f1; --panel: #ffffff; --line: #d9dfd2; --fg: #1d241b; --muted: #5d6857;
+  --soja: #3f6b2a; --soja-soft: #e3ecd9; --road: #b0612a; --rail: #2f5f7a; --rail-soft: #dde9ef;
+  --low: #cfe3b8; --high: #8a2f1c; --focus: #2f5f7a;
+  --f-display: "Bitter", Georgia, serif; --f-body: "IBM Plex Sans", system-ui, sans-serif; --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141a13; --panel: #1c241a; --line: #313d2d; --fg: #e6ece1; --muted: #9eab97;
+  --soja: #8fbf6c; --soja-soft: #26351f; --road: #e08a4f; --rail: #7fb3d1; --rail-soft: #1d2c35;
+  --low: #3d5a2b; --high: #f0915f; --focus: #7fb3d1; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #141a13; --panel: #1c241a; --line: #313d2d; --fg: #e6ece1; --muted: #9eab97;
+  --soja: #8fbf6c; --soja-soft: #26351f; --road: #e08a4f; --rail: #7fb3d1; --rail-soft: #1d2c35;
+  --low: #3d5a2b; --high: #f0915f; --focus: #7fb3d1; color-scheme: dark }
+html, body { margin: 0; }
+:root { padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--f-body); }
+.wrap { max-width: 68rem; margin-inline: auto; padding: 20px 16px 40px; display: flex; flex-direction: column; gap: 18px; }
+header h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(1.6rem, 4vw, 2.2rem); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 62ch; }
+.tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--line); }
+.tabs button { font: 600 14px var(--f-body); background: none; border: 0; color: var(--muted); padding: 10px 14px; border-bottom: 3px solid transparent; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--soja); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.grid { display: grid; grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 760px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.field label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .03em; text-transform: uppercase; }
+.field input, .field select { font: 500 15px var(--f-body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; width: 100%; box-sizing: border-box; }
+.field .hint { font-size: 12px; color: var(--muted); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+details { margin-top: 4px; }
+summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--rail); padding: 4px 0; }
+.big { font-family: var(--f-display); font-weight: 700; font-size: clamp(2rem, 6vw, 2.8rem); line-height: 1.05; font-variant-numeric: tabular-nums; }
+.kicker { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.result-head { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; }
+.lead { margin: 6px 0 14px; max-width: 60ch; }
+.compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 460px) { .compare { grid-template-columns: minmax(0, 1fr); } }
+.opt { border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.opt.road { border-top: 4px solid var(--road); }
+.opt.rail { border-top: 4px solid var(--rail); background: var(--rail-soft); }
+.opt h3 { margin: 0 0 2px; font-size: 15px; }
+.opt .route { font-size: 13px; color: var(--muted); margin-bottom: 10px; min-height: 2.6em; }
+dl.kv { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; margin: 0; font-size: 14px; }
+dl.kv dt { color: var(--muted); }
+dl.kv dd { margin: 0; text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.save { margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: var(--soja-soft); display: flex; flex-wrap: wrap; gap: 6px 24px; }
+.save div { display: flex; flex-direction: column; }
+.save b { font-family: var(--f-display); font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.save span { font-size: 12px; color: var(--muted); }
+.bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; margin: 10px 0 4px; background: var(--soja-soft); }
+.bar i { display: block; height: 100%; }
+.barlbl { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.mapbox { position: relative; }
+canvas { width: 100%; display: block; touch-action: manipulation; cursor: crosshair; }
+.tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; font-size: 13px; box-shadow: 0 4px 14px rgba(0,0,0,.12); white-space: nowrap; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
+.seg button { font: 500 13px var(--f-body); background: var(--panel); color: var(--fg); border: 0; padding: 8px 12px; cursor: pointer; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--soja); color: var(--panel); }
+.legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); flex-wrap: wrap; margin-top: 8px; }
+.ramp { width: 140px; height: 10px; border-radius: 5px; }
+.sym { display: inline-flex; align-items: center; gap: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+td { padding: 7px 8px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+td.n, th.n { text-align: right; }
+td button { font: inherit; background: none; border: 0; color: var(--rail); cursor: pointer; padding: 0; text-align: left; text-decoration: underline; text-underline-offset: 2px; }
+.tablebox { overflow-x: auto; }
+@media (max-width: 480px) { .term { display: none; } td, th { padding-inline: 5px; } }
+.notes { font-size: 13px; color: var(--muted); }
+.notes h2 { font-family: var(--f-display); color: var(--fg); font-size: 1.1rem; margin: 0 0 6px; }
+.notes p { margin: 0 0 6px; max-width: 75ch; }
+.notes a { color: var(--rail); }
+.badge { display: inline-block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 2px 7px; border-radius: 999px; background: var(--rail-soft); color: var(--rail); }
+.statline { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 4px 0 12px; }
+.statline div { display: flex; flex-direction: column; }
+.statline b { font-family: var(--f-display); font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+.statline span { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Rota da Soja PR</h1>
+    <p>Quanto a soja de cada município do Paraná perde em frete e emite de CO₂ até o Porto de Paranaguá, por caminhão ou combinando caminhão e trem.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-prod" aria-selected="true" aria-controls="pane-prod">Produtor e cooperativa</button>
+    <button role="tab" id="tab-gest" aria-selected="false" aria-controls="pane-gest">Gestor público</button>
+  </div>
+
+  <section id="pane-prod" role="tabpanel" aria-labelledby="tab-prod">
+    <div class="grid">
+      <form class="panel" id="form" autocomplete="off">
+        <div class="field">
+          <label for="mun">Município de origem</label>
+          <input id="mun" list="munlist" value="Guarapuava">
+          <datalist id="munlist"></datalist>
+          <span class="hint" id="mun-hint">399 municípios do Paraná</span>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="area">Área (ha)</label><input id="area" type="number" min="0" step="10" value="250"></div>
+          <div class="field"><label for="prod">Sacas por ha</label><input id="prod" type="number" min="0" step="1" value="65"></div>
+        </div>
+        <div class="field">
+          <label for="preco">Saca em Paranaguá (R$)</label>
+          <input id="preco" type="number" min="0" step="0.01" value="154.75">
+          <span class="hint" id="preco-hint">Indicador Cepea/Esalq de 09/10/2026</span>
+        </div>
+        <details>
+          <summary>Premissas do cálculo</summary>
+          <div class="field" style="margin-top:8px"><label for="tarifa">Frete rodoviário (R$ por t·km)</label><input id="tarifa" type="number" min="0" step="0.01" value="0.43"><span class="hint" id="tarifa-hint">Calibrado em Campo Mourão → Paranaguá, R$ 230/t (set/2026)</span></div>
+          <div class="field"><label for="desc">Ferrovia mais barata em (%)</label><input id="desc" type="number" min="0" max="90" step="1" value="30"><span class="hint">Comparação rodovia × trem no oeste do PR (Coopavel, 2021)</span></div>
+          <div class="row2">
+            <div class="field"><label for="frod">Fator rodovia</label><input id="frod" type="number" min="1" step="0.05" value="1.25"></div>
+            <div class="field"><label for="ffer">Fator ferrovia</label><input id="ffer" type="number" min="1" step="0.05" value="1.35"></div>
+          </div>
+          <span class="hint">Os fatores convertem a distância em linha reta na distância real pela estrada ou pelos trilhos.</span>
+        </details>
+      </form>
+
+      <div class="panel" id="result">
+        <div class="kicker" id="r-kicker">Guarapuava → Paranaguá</div>
+        <div class="result-head">
+          <div class="big" id="r-perda">—</div>
+          <div id="r-perda-lbl" class="kicker">por saca ficam no caminho</div>
+        </div>
+        <p class="lead" id="r-lead">—</p>
+        <div class="bar" aria-hidden="true"><i id="bar-liq" style="background:var(--soja)"></i><i id="bar-frete" style="background:var(--road)"></i></div>
+        <div class="barlbl"><span id="bar-l1">Preço na fazenda</span><span id="bar-l2">Frete</span></div>
+
+        <div class="compare" style="margin-top:16px">
+          <div class="opt road">
+            <h3>Só caminhão</h3>
+            <div class="route" id="o-road-route">—</div>
+            <dl class="kv">
+              <dt>Distância</dt><dd id="o-road-km">—</dd>
+              <dt>Frete por saca</dt><dd id="o-road-sc">—</dd>
+              <dt>Frete na safra</dt><dd id="o-road-tot">—</dd>
+              <dt>CO₂ na safra</dt><dd id="o-road-co2">—</dd>
+            </dl>
+          </div>
+          <div class="opt rail">
+            <h3>Caminhão + trem <span class="badge" id="o-rail-term">—</span></h3>
+            <div class="route" id="o-rail-route">—</div>
+            <dl class="kv">
+              <dt>Distância</dt><dd id="o-rail-km">—</dd>
+              <dt>Frete por saca</dt><dd id="o-rail-sc">—</dd>
+              <dt>Frete na safra</dt><dd id="o-rail-tot">—</dd>
+              <dt>CO₂ na safra</dt><dd id="o-rail-co2">—</dd>
+            </dl>
+          </div>
+        </div>
+        <div class="save">
+          <div><b id="s-rs">—</b><span>economia com a ferrovia na safra</span></div>
+          <div><b id="s-co2">—</b><span>de CO₂ evitados</span></div>
+          <div><b id="s-arv">—</b><span>viagens de carreta de 37 t a menos no trecho até o porto</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pane-gest" role="tabpanel" aria-labelledby="tab-gest" hidden>
+    <div class="panel">
+      <div class="statline" id="g-stats"></div>
+      <div class="seg" role="group" aria-label="O que o mapa mostra">
+        <button type="button" data-mode="road" aria-pressed="true">Frete só caminhão</button>
+        <button type="button" data-mode="best" aria-pressed="false">Melhor rota com trem</button>
+        <button type="button" data-mode="save" aria-pressed="false">Economia com o trem</button>
+        <button type="button" data-mode="co2" aria-pressed="false">CO₂ evitado</button>
+      </div>
+      <div class="mapbox" style="margin-top:12px">
+        <canvas id="map" aria-label="Mapa dos municípios do Paraná coloridos pelo indicador escolhido"></canvas>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+      <div class="legend">
+        <span id="lg-min">—</span><span class="ramp" id="ramp"></span><span id="lg-max">—</span>
+        <span id="lg-unit"></span>
+        <span class="sym">■ terminal ferroviário</span><span class="sym">- - - ligação ferroviária (esquemática)</span><span class="sym">★ Paranaguá</span>
+      </div>
+      <p class="notes" style="margin:8px 0 0">Toque em um município para abrir a simulação dele na aba do produtor.</p>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <h2 style="font-family:var(--f-display);font-size:1.1rem;margin:0 0 4px">Onde o trem mais economiza</h2>
+      <p class="notes" style="margin:0 0 10px">Municípios com maior economia por saca ao usar o terminal ferroviário mais vantajoso.</p>
+      <div class="tablebox"><table id="rank"><thead><tr><th>Município</th><th class="term">Terminal</th><th class="n">Só caminhão</th><th class="n">Com trem</th><th class="n">Economia/saca</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <section class="panel notes" id="metodo">
+    <h2>Como o cálculo é feito</h2>
+    <p>A distância é a linha reta entre a sede do município e Paranaguá, multiplicada por um fator de rota (1,25 na rodovia e 1,35 na ferrovia, que é mais sinuosa na Serra do Mar). Não é a quilometragem exata da estrada: para planejamento real, troque pelos dados da sua transportadora.</p>
+    <p>O frete rodoviário de R$ 0,43 por tonelada por km vem da rota Campo Mourão → Paranaguá, que custava R$ 230/t em setembro de 2026 segundo a TF Agroeconômica. O trem é considerado 30% mais barato por km, como relatado pela Coopavel. O custo de transbordo no terminal não está incluído.</p>
+    <p>Terminais considerados: Cascavel (Ferroeste), Guarapuava, Ponta Grossa e Maringá (Rumo). Emissões: 0,119 kg de CO₂ por t·km no caminhão e 0,035 no trem (PBMC, 2013, usado pela ESALQ-LOG). Uma saca tem 60 kg.</p>
+    <p>Este é um simulador de referência para debate e planejamento, não uma cotação de frete.</p>
+  </section>
+</div>
+
+<script>
+const MUN = [["Abatiá",-23.3049,-50.3133],["Adrianópolis",-24.6606,-48.9922],["Agudos do Sul",-25.9899,-49.3343],["Almirante Tamandaré",-25.3188,-49.3037],["Altamira do Paraná",-24.7983,-52.7128],["Alto Paraná",-23.1312,-52.3189],["Alto Paraíso",-26.1146,-52.7469],["Alto Piquiri",-24.0224,-53.44],["Altônia",-23.8759,-53.8958],["Alvorada do Sul",-22.7813,-51.2297],["Amaporã",-23.0943,-52.7866],["Ampére",-25.9168,-53.4686],["Anahy",-24.6449,-53.1332],["Andirá",-23.0533,-50.2304],["Antonina",-25.4386,-48.7191],["Antônio Olinto",-25.9804,-50.1972],["Apucarana",-23.55,-51.4635],["Arapongas",-23.4153,-51.4259],["Arapoti",-24.1548,-49.8285],["Arapuã",-24.3132,-51.7856],["Araruna",-23.9315,-52.5021],["Araucária",-25.5859,-49.4047],["Ariranha do Ivaí",-24.3857,-51.5839],["Assaí",-23.3697,-50.8459],["Assis Chateaubriand",-24.4168,-53.5213],["Astorga",-23.2318,-51.6668],["Atalaia",-23.1517,-52.0551],["Balsa Nova",-25.5804,-49.6291],["Bandeirantes",-23.1078,-50.3704],["Barbosa Ferraz",-24.0334,-52.004],["Barra do Jacaré",-23.116,-50.1842],["Barracão",-26.2502,-53.6324],["Bela Vista da Caroba",-25.8842,-53.6725],["Bela Vista do Paraíso",-22.9937,-51.1927],["Bituruna",-26.1607,-51.5518],["Boa Esperança",-24.2467,-52.7876],["Boa Esperança do Iguaçu",-25.6324,-53.2108],["Boa Ventura de São Roque",-24.8688,-51.6276],["Boa Vista da Aparecida",-25.4308,-53.4117],["Bocaiúva do Sul",-25.2066,-49.1141],["Bom Jesus do Sul",-26.1958,-53.5955],["Bom Sucesso",-23.7063,-51.7671],["Bom Sucesso do Sul",-26.0731,-52.8353],["Borrazópolis",-23.9366,-51.5875],["Braganey",-24.8173,-53.1218],["Brasilândia do Sul",-24.1978,-53.5275],["Cafeara",-22.789,-51.7142],["Cafelândia",-24.6189,-53.3207],["Cafezal do Sul",-23.9005,-53.5124],["Califórnia",-23.6566,-51.3574],["Cambará",-23.0423,-50.0753],["Cambira",-23.589,-51.5792],["Cambé",-23.2766,-51.2798],["Campina Grande do Sul",-25.3044,-49.0551],["Campina da Lagoa",-24.5893,-52.7976],["Campina do Simão",-25.0802,-51.8237],["Campo Bonito",-25.0294,-52.9939],["Campo Largo",-25.4525,-49.529],["Campo Magro",-25.3687,-49.4501],["Campo Mourão",-24.0463,-52.378],["Campo do Tenente",-25.98,-49.6844],["Candói",-25.5758,-52.0409],["Cantagalo",-25.3734,-52.1198],["Capanema",-25.6691,-53.8055],["Capitão Leônidas Marques",-25.4816,-53.6112],["Carambeí",-24.9152,-50.0986],["Carlópolis",-23.4269,-49.7235],["Cascavel",-24.9573,-53.459],["Castro",-24.7891,-50.0108],["Catanduvas",-25.2044,-53.1548],["Centenário do Sul",-22.8188,-51.5973],["Cerro Azul",-26.0891,-52.8691],["Chopinzinho",-25.8515,-52.5173],["Cianorte",-23.6599,-52.6054],["Cidade Gaúcha",-23.3772,-52.9436],["Clevelândia",-26.4043,-52.3508],["Colombo",-25.2925,-49.2262],["Colorado",-22.8374,-51.9743],["Congonhinhas",-23.5493,-50.5569],["Conselheiro Mairinck",-23.623,-50.1707],["Contenda",-25.6788,-49.535],["Corbélia",-24.7971,-53.3006],["Cornélio Procópio",-23.1829,-50.6498],["Coronel Domingos Soares",-26.2277,-52.0356],["Coronel Vivida",-25.9767,-52.5641],["Corumbataí do Sul",-24.101,-52.1177],["Cruz Machado",-26.0166,-51.343],["Cruzeiro do Iguaçu",-25.6192,-53.1285],["Cruzeiro do Oeste",-23.7799,-53.0774],["Cruzeiro do Sul",-22.9624,-52.1622],["Cruzmaltina",-24.0132,-51.4563],["Curitiba",-25.4195,-49.2646],["Curiúva",-24.0362,-50.4576],["Cândido de Abreu",-24.5649,-51.3372],["Céu Azul",-25.1489,-53.8415],["Diamante D'Oeste",-24.9419,-54.1052],["Diamante do Norte",-22.655,-52.8617],["Diamante do Sul",-25.035,-52.6768],["Dois Vizinhos",-25.7407,-53.057],["Douradina",-23.3807,-53.2918],["Doutor Camargo",-23.5582,-52.2178],["Doutor Ulysses",-24.5665,-49.4219],["Engenheiro Beltrão",-23.797,-52.2659],["Entre Rios do Oeste",-24.7042,-54.2385],["Enéas Marques",-25.9445,-53.1659],["Esperança Nova",-23.7238,-53.811],["Espigão Alto do Iguaçu",-25.4216,-52.8348],["Farol",-24.0958,-52.6217],["Faxinal",-24.0077,-51.3227],["Fazenda Rio Grande",-25.6624,-49.3073],["Fernandes Pinheiro",-25.4107,-50.5456],["Figueira",-23.8455,-50.4031],["Flor da Serra do Sul",-26.2523,-53.3092],["Floraí",-23.3178,-52.3029],["Floresta",-23.6031,-52.0807],["Florestópolis",-22.8623,-51.3882],["Flórida",-23.0847,-51.9546],["Formosa do Oeste",-24.2951,-53.3114],["Foz do Iguaçu",-25.5427,-54.5827],["Foz do Jordão",-25.7371,-52.1188],["Francisco Alves",-24.0667,-53.8461],["Francisco Beltrão",-26.0817,-53.0535],["Fênix",-23.9135,-51.9805],["General Carneiro",-26.425,-51.3172],["Godoy Moreira",-24.173,-51.9246],["Goioerê",-24.1835,-53.0248],["Goioxim",-25.1927,-51.9911],["Grandes Rios",-24.1466,-51.5094],["Guairaçá",-22.932,-52.6906],["Guamiranga",-25.1912,-50.8021],["Guapirama",-23.5203,-50.0407],["Guaporema",-23.3402,-52.7786],["Guaraci",-22.9694,-51.6504],["Guaraniaçu",-25.0968,-52.8755],["Guarapuava",-25.3902,-51.4623],["Guaraqueçaba",-25.3071,-48.3204],["Guaratuba",-25.8817,-48.5752],["Guaíra",-24.085,-54.2573],["Honório Serpa",-26.139,-52.3848],["Ibaiti",-23.8478,-50.1932],["Ibema",-25.1193,-53.0072],["Ibiporã",-23.2659,-51.0522],["Icaraíma",-23.3944,-53.615],["Iguaraçu",-23.1949,-51.8256],["Iguatu",-24.7153,-53.0827],["Imbaú",-24.448,-50.7533],["Imbituva",-25.2285,-50.5989],["Inajá",-22.7509,-52.1995],["Indianópolis",-23.4762,-52.6989],["Inácio Martins",-25.5704,-51.0769],["Ipiranga",-25.0238,-50.5794],["Iporã",-24.0083,-53.706],["Iracema do Oeste",-24.4262,-53.3528],["Irati",-25.4697,-50.6493],["Iretama",-24.4253,-52.1012],["Itaguajé",-22.6183,-51.9674],["Itaipulândia",-25.1366,-54.3001],["Itambaracá",-23.0181,-50.4097],["Itambé",-23.6601,-51.9912],["Itapejara d'Oeste",-25.9619,-52.8152],["Itaperuçu",-25.2193,-49.3454],["Itaúna do Sul",-22.7289,-52.8874],["Ivaiporã",-24.2485,-51.6754],["Ivatuba",-23.6187,-52.2203],["Ivaté",-23.4072,-53.3687],["Ivaí",-25.0067,-50.857],["Jaboti",-23.7435,-50.0729],["Jacarezinho",-23.1591,-49.9739],["Jaguapitã",-23.1104,-51.5342],["Jaguariaíva",-24.2439,-49.7066],["Jandaia do Sul",-23.6011,-51.6448],["Janiópolis",-24.1401,-52.7784],["Japira",-23.8142,-50.1422],["Japurá",-23.4693,-52.5557],["Jardim Alegre",-24.1809,-51.6902],["Jardim Olinda",-22.5523,-52.0503],["Jataizinho",-23.2578,-50.9777],["Jesuítas",-24.3839,-53.3849],["Joaquim Távora",-23.4987,-49.909],["Jundiaí do Sul",-23.4357,-50.2496],["Juranda",-24.4209,-52.8413],["Jussara",-23.6219,-52.4693],["Kaloré",-23.8188,-51.6687],["Lapa",-25.7671,-49.7168],["Laranjal",-24.8862,-52.47],["Laranjeiras do Sul",-25.4077,-52.4109],["Leópolis",-23.0818,-50.7511],["Lidianópolis",-24.11,-51.6506],["Lindoeste",-25.2596,-53.5733],["Loanda",-22.9232,-53.1362],["Lobato",-23.0058,-51.9524],["Londrina",-23.304,-51.1691],["Luiziana",-24.2853,-52.269],["Lunardelli",-24.0821,-51.7368],["Lupionópolis",-22.755,-51.6601],["Mallet",-25.8806,-50.8173],["Mamborê",-24.317,-52.5271],["Mandaguari",-23.5446,-51.671],["Mandaguaçu",-23.3458,-52.0944],["Mandirituba",-25.777,-49.3282],["Manfrinópolis",-26.1441,-53.3113],["Mangueirinha",-25.9421,-52.1743],["Manoel Ribas",-24.5144,-51.6658],["Marechal Cândido Rondon",-24.557,-54.0571],["Maria Helena",-23.6158,-53.2053],["Marialva",-23.4843,-51.7928],["Marilena",-22.7336,-53.0402],["Mariluz",-24.0089,-53.1432],["Marilândia do Sul",-23.7425,-51.3137],["Maringá",-23.4205,-51.9333],["Maripá",-24.42,-53.8286],["Mariópolis",-26.355,-52.5532],["Marmeleiro",-26.1472,-53.0267],["Marquinho",-25.112,-52.2497],["Marumbi",-23.7058,-51.6404],["Matelândia",-25.2496,-53.9935],["Matinhos",-25.8237,-48.549],["Mato Rico",-24.6995,-52.1454],["Mauá da Serra",-23.8988,-51.2277],["Medianeira",-25.2977,-54.0943],["Mercedes",-24.4538,-54.1618],["Mirador",-23.255,-52.7761],["Miraselva",-22.9657,-51.4846],["Missal",-25.0919,-54.2477],["Moreira Sales",-24.0509,-53.0102],["Morretes",-25.4744,-48.8345],["Munhoz de Melo",-23.1487,-51.7737],["Nossa Senhora das Graças",-22.9129,-51.7978],["Nova Aliança do Ivaí",-23.1763,-52.6032],["Nova América da Colina",-23.3308,-50.7168],["Nova Aurora",-24.5289,-53.2575],["Nova Cantu",-24.6723,-52.5661],["Nova Esperança",-23.182,-52.2031],["Nova Esperança do Sudoeste",-25.9004,-53.2618],["Nova Fátima",-23.4324,-50.5665],["Nova Laranjeiras",-25.3054,-52.5447],["Nova Londrina",-22.7639,-52.9868],["Nova Olímpia",-23.4703,-53.0898],["Nova Prata do Iguaçu",-25.6309,-53.3469],["Nova Santa Bárbara",-23.5865,-50.7598],["Nova Santa Rosa",-24.4693,-53.9552],["Nova Tebas",-24.438,-51.9454],["Novo Itacolomi",-23.7631,-51.5079],["Ortigueira",-24.2058,-50.9185],["Ourizona",-23.4053,-52.1964],["Ouro Verde do Oeste",-24.7933,-53.9043],["Paiçandu",-23.4555,-52.046],["Palmas",-26.4839,-51.9888],["Palmeira",-25.4257,-50.007],["Palmital",-24.8853,-52.2029],["Palotina",-24.2868,-53.8404],["Paranacity",-22.9297,-52.1549],["Paranaguá",-25.5161,-48.5225],["Paranapoema",-22.6412,-52.0905],["Paranavaí",-23.0816,-52.4617],["Paraíso do Norte",-23.2824,-52.6054],["Pato Bragado",-24.6271,-54.2265],["Pato Branco",-26.2292,-52.6706],["Paula Freitas",-26.2105,-50.931],["Paulo Frontin",-26.0466,-50.8304],["Peabiru",-23.914,-52.3431],["Perobal",-23.8949,-53.4098],["Pinhais",-25.4429,-49.1927],["Pinhal de São Bento",-26.0324,-53.482],["Pinhalão",-23.7982,-50.0536],["Pinhão",-25.6944,-51.6536],["Piraquara",-25.4422,-49.0624],["Piraí do Sul",-24.5306,-49.9433],["Pitanga",-24.7588,-51.7596],["Pitangueiras",-23.2281,-51.5873],["Piên",-26.0965,-49.4336],["Planaltina do Paraná",-23.0101,-52.9162],["Planalto",-25.7211,-53.7642],["Ponta Grossa",-25.0916,-50.1668],["Pontal do Paraná",-25.6735,-48.5111],["Porecatu",-22.7537,-51.3795],["Porto Amazonas",-25.54,-49.8946],["Porto Barreiro",-25.5477,-52.4067],["Porto Rico",-22.7747,-53.2677],["Porto Vitória",-26.1674,-51.231],["Prado Ferreira",-23.0357,-51.4429],["Pranchita",-26.0209,-53.7397],["Presidente Castelo Branco",-23.2782,-52.1536],["Primeiro de Maio",-22.8517,-51.0293],["Prudentópolis",-25.2111,-50.9754],["Pérola",-23.8039,-53.6834],["Pérola d'Oeste",-25.8278,-53.7433],["Quarto Centenário",-24.2775,-53.0759],["Quatiguá",-23.5671,-49.916],["Quatro Barras",-25.3673,-49.0763],["Quatro Pontes",-24.5752,-53.9759],["Quedas do Iguaçu",-25.4492,-52.9102],["Querência do Norte",-23.0838,-53.483],["Quinta do Sol",-23.8533,-52.1309],["Quitandinha",-25.8734,-49.4973],["Ramilândia",-25.1195,-54.023],["Rancho Alegre",-23.0676,-50.9145],["Rancho Alegre D'Oeste",-24.3065,-52.9552],["Realeza",-25.7711,-53.526],["Rebouças",-25.6232,-50.6877],["Renascença",-26.1588,-52.9703],["Reserva",-24.6492,-50.8466],["Reserva do Iguaçu",-25.8319,-52.0272],["Ribeirão Claro",-23.1941,-49.7597],["Ribeirão do Pinhal",-23.4091,-50.3601],["Rio Azul",-25.7306,-50.7985],["Rio Bom",-23.7606,-51.4122],["Rio Bonito do Iguaçu",-25.4874,-52.5292],["Rio Branco do Ivaí",-24.3244,-51.3187],["Rio Branco do Sul",-25.1892,-49.3115],["Rio Negro",-26.095,-49.7982],["Rolândia",-23.3101,-51.3659],["Roncador",-24.5958,-52.2716],["Rondon",-23.412,-52.7659],["Rosário do Ivaí",-24.2682,-51.272],["Sabáudia",-23.3155,-51.555],["Salgado Filho",-26.1777,-53.3631],["Salto do Itararé",-23.6074,-49.6354],["Salto do Lontra",-25.7813,-53.3135],["Santa Amélia",-23.2654,-50.4288],["Santa Cecília do Pavão",-23.5201,-50.7835],["Santa Cruz de Monte Castelo",-22.9582,-53.2949],["Santa Fé",-23.04,-51.808],["Santa Helena",-24.8585,-54.336],["Santa Inês",-22.6376,-51.9024],["Santa Isabel do Ivaí",-23.0025,-53.1989],["Santa Izabel do Oeste",-25.8217,-53.4801],["Santa Lúcia",-25.4104,-53.5638],["Santa Maria do Oeste",-24.9377,-51.8696],["Santa Mariana",-23.1465,-50.5167],["Santa Mônica",-23.108,-53.1103],["Santa Tereza do Oeste",-25.0543,-53.6274],["Santa Terezinha de Itaipu",-25.4391,-54.402],["Santana do Itararé",-23.7587,-49.6293],["Santo Antônio da Platina",-23.2959,-50.0815],["Santo Antônio do Caiuá",-22.7351,-52.344],["Santo Antônio do Paraíso",-23.4969,-50.6455],["Santo Antônio do Sudoeste",-26.0737,-53.7251],["Santo Inácio",-22.6957,-51.7969],["Sapopema",-23.9078,-50.5801],["Sarandi",-23.4441,-51.876],["Saudade do Iguaçu",-25.6917,-52.6184],["Sengés",-24.1129,-49.4616],["Serranópolis do Iguaçu",-25.3799,-54.0518],["Sertaneja",-23.0361,-50.8317],["Sertanópolis",-23.0571,-51.0399],["Siqueira Campos",-23.6875,-49.8304],["Sulina",-25.7066,-52.7299],["São Carlos do Ivaí",-23.3158,-52.4761],["São Jerônimo da Serra",-23.7218,-50.7475],["São Jorge d'Oeste",-25.7085,-52.9204],["São Jorge do Ivaí",-23.4336,-52.2929],["São Jorge do Patrocínio",-23.7647,-53.8823],["São José da Boa Vista",-23.9122,-49.6577],["São José das Palmeiras",-24.8369,-54.0572],["São José dos Pinhais",-25.5313,-49.2031],["São João",-25.8214,-52.7252],["São João do Caiuá",-22.8535,-52.3411],["São João do Ivaí",-23.9833,-51.8215],["São João do Triunfo",-25.683,-50.2949],["São Manoel do Paraná",-23.3941,-52.6454],["São Mateus do Sul",-25.8677,-50.384],["São Miguel do Iguaçu",-25.3492,-54.2405],["São Pedro do Iguaçu",-24.9373,-53.8521],["São Pedro do Ivaí",-23.8634,-51.8568],["São Pedro do Paraná",-22.8239,-53.2241],["São Sebastião da Amoreira",-23.4656,-50.7625],["São Tomé",-23.5349,-52.5901],["Tamarana",-23.7204,-51.0991],["Tamboara",-23.2036,-52.4743],["Tapejara",-23.7315,-52.8735],["Tapira",-23.3193,-53.0684],["Teixeira Soares",-25.3701,-50.4571],["Telêmaco Borba",-24.3245,-50.6176],["Terra Boa",-23.7683,-52.447],["Terra Rica",-22.7111,-52.6188],["Terra Roxa",-24.1575,-54.0988],["Tibagi",-24.5153,-50.4176],["Tijucas do Sul",-25.9311,-49.195],["Toledo",-24.7246,-53.7412],["Tomazina",-23.7796,-49.9499],["Três Barras do Paraná",-25.4185,-53.1833],["Tunas do Paraná",-24.9731,-49.0879],["Tuneiras do Oeste",-23.8648,-52.8769],["Tupãssi",-24.5879,-53.5105],["Turvo",-25.0437,-51.5282],["Ubiratã",-24.5393,-52.9865],["Umuarama",-23.7656,-53.3201],["Uniflor",-23.0868,-52.1573],["União da Vitória",-26.2273,-51.0873],["Uraí",-23.2,-50.7939],["Ventania",-24.2458,-50.2376],["Vera Cruz do Oeste",-25.0577,-53.8771],["Verê",-25.8772,-52.9051],["Virmond",-25.3829,-52.1987],["Vitorino",-26.2683,-52.7843],["Wenceslau Braz",-23.8742,-49.8032],["Xambrê",-23.7364,-53.4884],["Ângulo",-23.1946,-51.9154]];
+const PNG = { nome: 'Paranaguá', lat: -25.5161, lon: -48.5225 };
+const TERM = ['Cascavel', 'Guarapuava', 'Ponta Grossa', 'Maringá'];
+const EF_ROAD = 0.11917, EF_RAIL = 0.0346; // kg CO2 / t.km
+const TRUCK_T = 37;
+const byName = new Map(MUN.map(m => [m[0], { nome: m[0], lat: m[1], lon: m[2] }]));
+const terms = TERM.map(n => byName.get(n));
+
+const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const brl0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+const n0 = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
+const n1 = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+const pct = new Intl.NumberFormat('pt-BR', { style: 'percent', maximumFractionDigits: 1, minimumFractionDigits: 1 });
+
+function hav(a, b) {
+  const R = 6371, r = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * r, dLon = (b.lon - a.lon) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+function params() {
+  const v = (id, d) => { const x = parseFloat(document.getElementById(id).value); return isFinite(x) && x >= 0 ? x : d; };
+  return { tarifa: v('tarifa', 0.43), desc: Math.min(v('desc', 30), 90) / 100, frod: Math.max(1, v('frod', 1.25)), ffer: Math.max(1, v('ffer', 1.35)),
+           area: v('area', 0), prod: v('prod', 0), preco: v('preco', 154.75) };
+}
+
+function route(m, p) {
+  const roadKm = hav(m, PNG) * p.frod;
+  const road = { km: roadKm, rt: roadKm * p.tarifa, co2: roadKm * EF_ROAD };
+  let best = null;
+  for (const t of terms) {
+    const l1 = m.nome === t.nome ? 0 : hav(m, t) * p.frod;
+    const l2 = hav(t, PNG) * p.ffer;
+    const rt = l1 * p.tarifa + l2 * p.tarifa * (1 - p.desc);
+    if (!best || rt < best.rt) best = { term: t.nome, l1, l2, km: l1 + l2, rt, co2: l1 * EF_ROAD + l2 * EF_RAIL };
+  }
+  return { road, rail: best };
+}
+
+const $ = id => document.getElementById(id);
+const set = (id, t) => { $(id).textContent = t; };
+const tCO2 = kg => kg >= 1000 ? n1.format(kg / 1000) + ' t' : n0.format(kg) + ' kg';
+
+function renderProd() {
+  const p = params();
+  const raw = $('mun').value.trim();
+  const m = byName.get(raw) || MUN.map(x => byName.get(x[0])).find(x => x.nome.toLowerCase() === raw.toLowerCase());
+  if (!m) { set('mun-hint', 'Escolha um município da lista'); return; }
+  set('mun-hint', '399 municípios do Paraná');
+  const { road, rail } = route(m, p);
+  const t = p.area * p.prod * 0.06; // toneladas
+  const sc = p.area * p.prod;
+  const roadSc = road.rt * 0.06, railSc = rail.rt * 0.06;
+  set('r-kicker', m.nome + ' → Paranaguá');
+  if (m.nome === 'Paranaguá') {
+    set('r-perda', brl.format(0)); set('r-lead', 'A soja já está no porto: não há frete até o embarque.');
+  } else {
+    set('r-perda', brl.format(roadSc));
+    set('r-lead', 'Só de caminhão, ' + pct.format(roadSc / p.preco) + ' do preço de Paranaguá vai para o frete. O produtor de ' + m.nome + ' recebe cerca de ' + brl.format(Math.max(0, p.preco - roadSc)) + ' por saca. Com o trem a partir de ' + rail.term + ', o frete cai para ' + brl.format(railSc) + '.');
+  }
+  const f = Math.min(1, roadSc / p.preco);
+  $('bar-liq').style.width = ((1 - f) * 100) + '%'; $('bar-frete').style.width = (f * 100) + '%';
+  set('bar-l1', 'Na fazenda ' + brl.format(Math.max(0, p.preco - roadSc))); set('bar-l2', 'Frete ' + brl.format(roadSc));
+
+  set('o-road-route', m.nome + ' → Paranaguá pela rodovia');
+  set('o-road-km', n0.format(road.km) + ' km');
+  set('o-road-sc', brl.format(roadSc));
+  set('o-road-tot', brl0.format(road.rt * t));
+  set('o-road-co2', tCO2(road.co2 * t));
+
+  set('o-rail-term', rail.term);
+  set('o-rail-route', (rail.l1 > 0 ? n0.format(rail.l1) + ' km de caminhão até ' + rail.term + ', ' : 'Embarque direto em ' + rail.term + ', ') + n0.format(rail.l2) + ' km de trem');
+  set('o-rail-km', n0.format(rail.km) + ' km');
+  set('o-rail-sc', brl.format(railSc));
+  set('o-rail-tot', brl0.format(rail.rt * t));
+  set('o-rail-co2', tCO2(rail.co2 * t));
+
+  const econ = (road.rt - rail.rt) * t, co2 = (road.co2 - rail.co2) * t;
+  set('s-rs', econ > 0 ? brl0.format(econ) : brl0.format(0));
+  set('s-co2', co2 > 0 ? tCO2(co2) : '0 kg');
+  set('s-arv', railSc < roadSc ? n0.format(Math.round(t / TRUCK_T)) : '0');
+  try { localStorage.setItem('rota-soja-mun', m.nome); } catch (e) {}
+}
+
+// ---------- Gestor ----------
+let mode = 'road', pts = [], hover = null;
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function computeAll() {
+  const p = params();
+  pts = MUN.map(x => {
+    const m = byName.get(x[0]); const r = route(m, p);
+    return { m, road: r.road.rt * 0.06, best: Math.min(r.road.rt, r.rail.rt) * 0.06, rail: r.rail, save: Math.max(0, r.road.rt - r.rail.rt) * 0.06, co2: Math.max(0, r.road.co2 - r.rail.co2) };
+  }).filter(d => d.m.nome !== 'Paranaguá');
+}
+const metric = d => mode === 'road' ? d.road : mode === 'best' ? d.best : mode === 'save' ? d.save : d.co2;
+const fmtMetric = v => mode === 'co2' ? n0.format(v) + ' kg/t' : brl.format(v);
+const unit = () => mode === 'co2' ? 'kg de CO₂ evitados por tonelada' : 'R$ por saca';
+
+function mix(a, b, t) {
+  const pa = a.match(/\w\w/g).map(h => parseInt(h, 16)), pb = b.match(/\w\w/g).map(h => parseInt(h, 16));
+  return 'rgb(' + pa.map((v, i) => Math.round(v + (pb[i] - v) * t)).join(',') + ')';
+}
+
+let geo = null;
+function drawMap() {
+  const cv = $('map'); const W = cv.clientWidth || 600;
+  const lats = MUN.map(m => m[1]), lons = MUN.map(m => m[2]);
+  const k = Math.cos(24.7 * Math.PI / 180);
+  const minLon = Math.min(...lons), maxLon = Math.max(...lons), minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const pad = { l: 40, r: 14, t: 30, b: 46 };
+  const s = (W - pad.l - pad.r) / ((maxLon - minLon) * k);
+  const H = Math.round((maxLat - minLat) * s + pad.t + pad.b);
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = W * dpr; cv.height = H * dpr; cv.style.height = H + 'px';
+  const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const P = m => [pad.l + (m.lon - minLon) * k * s, pad.t + (maxLat - m.lat) * s];
+  geo = { P, s, k };
+  c.fillStyle = cssv('--panel'); c.fillRect(0, 0, W, H);
+  const vals = pts.map(metric); const lo = Math.min(...vals), hi = Math.max(...vals);
+  const cLo = cssv('--low'), cHi = cssv('--high');
+  const r = Math.max(3, Math.min(5.5, W / 140));
+  for (const d of pts) {
+    const [x, y] = P(d.m); d.x = x; d.y = y;
+    const t = hi > lo ? (metric(d) - lo) / (hi - lo) : 0;
+    c.beginPath(); c.arc(x, y, r, 0, 7); c.fillStyle = mix(cLo, cHi, t); c.fill();
+  }
+  // rail lines (schematic, terminal to port)
+  c.strokeStyle = cssv('--rail'); c.lineWidth = 2; c.setLineDash([6, 4]);
+  const pp = P(PNG);
+  for (const t of terms) { const [x, y] = P(t); c.beginPath(); c.moveTo(x, y); c.lineTo(pp[0], pp[1]); c.stroke(); }
+  c.setLineDash([]);
+  c.fillStyle = cssv('--fg'); c.font = '600 12px ' + cssv('--f-body');
+  const placed = [];
+  const label = (txt, x, y, below) => {
+    const w = c.measureText(txt).width; let lx = Math.min(Math.max(2, x - w / 2), W - w - 2); let ly = below ? y + 18 : y - 9;
+    if (placed.some(b => Math.abs(b.x - lx) < (b.w + w) / 2 + 4 && Math.abs(b.y - ly) < 14)) ly = below ? ly - 30 : ly + 30;
+    placed.push({ x: lx, y: ly, w });
+    c.lineWidth = 4; c.lineJoin = 'round'; c.strokeStyle = cssv('--panel'); c.strokeText(txt, lx, ly); c.fillText(txt, lx, ly);
+  };
+  for (const t of terms) { const [x, y] = P(t); c.fillStyle = cssv('--rail'); c.fillRect(x - 5, y - 5, 10, 10); c.fillStyle = cssv('--fg'); label(t.nome, x, y, t.nome !== 'Maringá'); }
+  // star for Paranaguá
+  c.fillStyle = cssv('--fg'); c.beginPath();
+  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? 3.5 : 8; c.lineTo(pp[0] + rr * Math.cos(a), pp[1] + rr * Math.sin(a)); }
+  c.closePath(); c.fill(); label('Paranaguá', pp[0] - 20, pp[1], true);
+  // north arrow
+  const nx = W - 26, ny = 22;
+  c.fillStyle = cssv('--muted'); c.beginPath(); c.moveTo(nx, ny - 12); c.lineTo(nx - 6, ny + 4); c.lineTo(nx, ny); c.lineTo(nx + 6, ny + 4); c.closePath(); c.fill();
+  c.font = '600 11px ' + cssv('--f-body'); c.fillText('N', nx - 4, ny + 17);
+  // scale bar 100 km
+  const kmPerDeg = 111.2; const px100 = 100 / kmPerDeg * s;
+  const sx = pad.l, sy = H - 18;
+  c.strokeStyle = cssv('--fg'); c.lineWidth = 2; c.beginPath(); c.moveTo(sx, sy); c.lineTo(sx + px100, sy); c.moveTo(sx, sy - 4); c.lineTo(sx, sy + 4); c.moveTo(sx + px100, sy - 4); c.lineTo(sx + px100, sy + 4); c.moveTo(sx + px100 / 2, sy - 3); c.lineTo(sx + px100 / 2, sy + 3); c.stroke();
+  c.fillStyle = cssv('--muted'); c.font = '500 11px ' + cssv('--f-mono'); c.fillText('0', sx - 3, sy - 8); c.fillText('100 km', sx + px100 - 18, sy - 8);
+  // coordinates ticks
+  c.font = '500 10px ' + cssv('--f-mono'); c.fillStyle = cssv('--muted');
+  for (let lon = Math.ceil(minLon); lon <= maxLon; lon++) { const x = pad.l + (lon - minLon) * k * s; c.fillText(Math.abs(lon) + '°O', x - 10, H - 2); }
+  for (let lat = Math.ceil(minLat); lat <= maxLat; lat++) { const y = pad.t + (maxLat - lat) * s; c.fillText(Math.abs(lat) + '°S', 2, y + 3); }
+  if (hover) { c.strokeStyle = cssv('--fg'); c.lineWidth = 2; c.beginPath(); c.arc(hover.x, hover.y, r + 3, 0, 7); c.stroke(); }
+  set('lg-min', fmtMetric(lo)); set('lg-max', fmtMetric(hi)); set('lg-unit', unit());
+  $('ramp').style.background = 'linear-gradient(90deg,' + cLo + ',' + cHi + ')';
+}
+
+function renderGestor() {
+  computeAll();
+  const avgRoad = pts.reduce((a, d) => a + d.road, 0) / pts.length;
+  const avgSave = pts.reduce((a, d) => a + d.save, 0) / pts.length;
+  const avgCo2 = pts.reduce((a, d) => a + d.co2, 0) / pts.length;
+  const st = $('g-stats'); st.innerHTML = '';
+  [[brl.format(avgRoad), 'frete médio por saca, só caminhão'], [brl.format(avgSave), 'economia média por saca com o trem'], [n0.format(avgCo2) + ' kg', 'CO₂ evitado por tonelada, em média']].forEach(([b, s]) => {
+    const d = document.createElement('div'); const bb = document.createElement('b'); bb.textContent = b; const ss = document.createElement('span'); ss.textContent = s; d.append(bb, ss); st.appendChild(d);
+  });
+  drawMap();
+  const tb = document.querySelector('#rank tbody'); tb.innerHTML = '';
+  pts.slice().sort((a, b) => b.save - a.save).slice(0, 10).forEach(d => {
+    const tr = document.createElement('tr');
+    const td0 = document.createElement('td'); const bt = document.createElement('button'); bt.type = 'button'; bt.textContent = d.m.nome; bt.onclick = () => openProd(d.m.nome); td0.appendChild(bt); tr.appendChild(td0);
+    [[d.rail.term, 'term'], [brl.format(d.road), 'n'], [brl.format(d.best), 'n'], [brl.format(d.save), 'n']].forEach(([t, cl]) => { const td = document.createElement('td'); td.textContent = t; if (cl) td.className = cl; tr.appendChild(td); });
+    tb.appendChild(tr);
+  });
+}
+
+function nearest(ev) {
+  const cv = $('map'); const rect = cv.getBoundingClientRect();
+  const x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+  let best = null, bd = 1e9;
+  for (const d of pts) { const dd = (d.x - x) ** 2 + (d.y - y) ** 2; if (dd < bd) { bd = dd; best = d; } }
+  return bd < 400 ? { d: best, x, y } : null;
+}
+$('map').addEventListener('mousemove', ev => {
+  const h = nearest(ev); const tip = $('tip');
+  hover = h ? h.d : null;
+  if (!h) { tip.hidden = true; drawMap(); return; }
+  tip.hidden = false; tip.textContent = '';
+  const b = document.createElement('b'); b.textContent = h.d.m.nome; tip.appendChild(b);
+  const l = document.createElement('div'); l.textContent = 'Caminhão ' + brl.format(h.d.road) + ' · com trem ' + brl.format(h.d.best) + ' por saca'; tip.appendChild(l);
+  const box = $('map').clientWidth; const tw = tip.offsetWidth;
+  tip.style.left = Math.min(Math.max(0, h.x + 12), box - tw) + 'px'; tip.style.top = Math.max(0, h.y - 50) + 'px';
+  drawMap();
+});
+$('map').addEventListener('mouseleave', () => { $('tip').hidden = true; hover = null; drawMap(); });
+$('map').addEventListener('click', ev => { const h = nearest(ev); if (h) openProd(h.d.m.nome); });
+
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+  mode = b.dataset.mode; document.querySelectorAll('.seg button').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); drawMap();
+}));
+
+function showTab(which) {
+  const prod = which === 'prod';
+  $('tab-prod').setAttribute('aria-selected', prod); $('tab-gest').setAttribute('aria-selected', !prod);
+  $('pane-prod').hidden = !prod; $('pane-gest').hidden = prod;
+  if (!prod) renderGestor();
+}
+function openProd(nome) { $('mun').value = nome; renderProd(); showTab('prod'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+$('tab-prod').onclick = () => showTab('prod');
+$('tab-gest').onclick = () => showTab('gest');
+
+const dl = $('munlist'); MUN.forEach(m => { const o = document.createElement('option'); o.value = m[0]; dl.appendChild(o); });
+try { const saved = localStorage.getItem('rota-soja-mun'); if (saved && byName.has(saved)) $('mun').value = saved; } catch (e) {}
+$('form').addEventListener('input', () => { renderProd(); if (!$('pane-gest').hidden) renderGestor(); });
+$('form').addEventListener('submit', e => e.preventDefault());
+$('mun').addEventListener('focus', e => e.target.select());
+window.addEventListener('resize', () => { if (!$('pane-gest').hidden) drawMap(); });
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!$('pane-gest').hidden) drawMap(); });
+if (location.hash === '#gestor') showTab('gest');
+renderProd();
+
+// ---------- dados atualizáveis (data/*.json) ----------
+const fmtData = s => { const [y, m, d] = String(s).split('-'); return d && m && y ? d + '/' + m + '/' + y : s; };
+let editado = { preco: false, tarifa: false };
+$('preco').addEventListener('input', () => { editado.preco = true; });
+$('tarifa').addEventListener('input', () => { editado.tarifa = true; });
+async function carregarDados() {
+  try {
+    const r = await fetch('data/cotacao.json', { cache: 'no-cache' });
+    if (r.ok) { const c = await r.json(); const v = Number(c.preco);
+      if (v > 0 && !editado.preco) { $('preco').value = v.toFixed(2); set('preco-hint', 'Indicador ' + (c.fonte || 'Cepea/Esalq') + ' de ' + fmtData(c.data)); } }
+  } catch (e) {}
+  try {
+    const r = await fetch('data/frete.json', { cache: 'no-cache' });
+    if (r.ok) { const f = await r.json(); const v = Number(f.tarifa);
+      if (v > 0 && !editado.tarifa) { $('tarifa').value = v.toFixed(2); if (f.referencia) set('tarifa-hint', f.referencia); } }
+  } catch (e) {}
+  renderProd(); if (!$('pane-gest').hidden) renderGestor();
+}
+carregarDados();
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+</script>
+</body>
+</html>

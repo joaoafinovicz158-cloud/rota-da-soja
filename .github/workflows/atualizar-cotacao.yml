@@ -1,0 +1,44 @@
+name: Atualizar cotação da soja
+
+# Rode pelo celular: aba Actions > "Atualizar cotação da soja" > Run workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      preco:
+        description: "Saca em Paranaguá (R$), ex.: 154.75"
+        required: true
+      data:
+        description: "Data da cotação (AAAA-MM-DD), ex.: 2026-10-13"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gravar cotação
+        env:
+          PRECO: ${{ inputs.preco }}
+          DATA: ${{ inputs.data }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, sys
+          preco = os.environ["PRECO"].strip().replace(",", ".")
+          data = os.environ["DATA"].strip()
+          if not re.fullmatch(r"\d+(\.\d{1,2})?", preco) or not (20 <= float(preco) <= 1000):
+              sys.exit("Preço inválido: use número como 154.75")
+          if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", data):
+              sys.exit("Data inválida: use AAAA-MM-DD")
+          json.dump({"preco": float(preco), "data": data, "fonte": "Cepea/Esalq"},
+                    open("data/cotacao.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+          PY
+      - name: Salvar no site
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/cotacao.json
+          git diff --cached --quiet || git commit -m "Cotação de ${{ inputs.data }}: R$ ${{ inputs.preco }}"
+          git push
