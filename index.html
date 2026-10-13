@@ -128,7 +128,11 @@ td button { font: inherit; background: none; border: 0; color: var(--rail); curs
         </div>
         <details>
           <summary>Premissas do cálculo</summary>
-          <div class="field" style="margin-top:8px"><label for="tarifa">Frete rodoviário (R$ por t·km)</label><input id="tarifa" type="number" min="0" step="0.01" value="0.43"><span class="hint" id="tarifa-hint">Calibrado em Campo Mourão → Paranaguá, R$ 230/t (set/2026)</span></div>
+          <div class="row2" style="margin-top:8px">
+            <div class="field"><label for="tarifa">Frete por km (R$/t)</label><input id="tarifa" type="number" min="0" step="0.01" value="0.31"></div>
+            <div class="field"><label for="fixo">Parte fixa (R$/t)</label><input id="fixo" type="number" min="0" step="1" value="24.41"></div>
+          </div>
+          <span class="hint" id="tarifa-hint" style="display:block;margin:-6px 0 12px">Ajustado às rotas do Paraná do Boletim Logístico da Conab (fretes de ago/2026)</span>
           <div class="field"><label for="desc">Ferrovia mais barata em (%)</label><input id="desc" type="number" min="0" max="90" step="1" value="30"><span class="hint">Comparação rodovia × trem no oeste do PR (Coopavel, 2021)</span></div>
           <div class="row2">
             <div class="field"><label for="frod">Fator rodovia</label><input id="frod" type="number" min="1" step="0.05" value="1.25"></div>
@@ -155,6 +159,7 @@ td button { font: inherit; background: none; border: 0; color: var(--rail); curs
             <dl class="kv">
               <dt>Distância</dt><dd id="o-road-km">—</dd>
               <dt>Frete por saca</dt><dd id="o-road-sc">—</dd>
+              <dt>Piso ANTT por saca</dt><dd id="o-road-piso">—</dd>
               <dt>Frete na safra</dt><dd id="o-road-tot">—</dd>
               <dt>CO₂ na safra</dt><dd id="o-road-co2">—</dd>
             </dl>
@@ -209,7 +214,9 @@ td button { font: inherit; background: none; border: 0; color: var(--rail); curs
   <section class="panel notes" id="metodo">
     <h2>Como o cálculo é feito</h2>
     <p>A distância é a linha reta entre a sede do município e Paranaguá, multiplicada por um fator de rota (1,25 na rodovia e 1,35 na ferrovia, que é mais sinuosa na Serra do Mar). Não é a quilometragem exata da estrada: para planejamento real, troque pelos dados da sua transportadora.</p>
-    <p>O frete rodoviário de R$ 0,43 por tonelada por km vem da rota Campo Mourão → Paranaguá, que custava R$ 230/t em setembro de 2026 segundo a TF Agroeconômica. O trem é considerado 30% mais barato por km, como relatado pela Coopavel. O custo de transbordo no terminal não está incluído.</p>
+    <p>O frete de mercado é estimado como uma parte fixa (R$ 24,41/t) mais R$ 0,31 por tonelada por km, ajustados às quatro rotas do Paraná até Paranaguá do Boletim Logístico da Conab (Toledo, Campo Mourão, Cascavel e Ponta Grossa, fretes de agosto de 2026). Para essas quatro cidades, o app usa a distância e o frete observados pela Conab. Esses valores são atualizados todo mês.</p>
+    <p>O piso é o preço mínimo legal da ANTT para granel sólido em caminhão de 7 eixos (Portaria SUROC nº 22/2026, em vigor desde 30/09/2026): R$ 8,2316 por km mais R$ 820,34 de carga e descarga por viagem, dividido por 37 t de carga. Confira os coeficientes na calculadora oficial da ANTT antes de usar em contratos.</p>
+    <p>O trem é considerado 30% mais barato por km, como relatado pela Coopavel. O custo de transbordo no terminal não está incluído.</p>
     <p>Terminais considerados: Cascavel (Ferroeste), Guarapuava, Ponta Grossa e Maringá (Rumo). Emissões: 0,119 kg de CO₂ por t·km no caminhão e 0,035 no trem (PBMC, 2013, usado pela ESALQ-LOG). Uma saca tem 60 kg.</p>
     <p>Este é um simulador de referência para debate e planejamento, não uma cotação de frete.</p>
   </section>
@@ -239,18 +246,24 @@ function hav(a, b) {
 
 function params() {
   const v = (id, d) => { const x = parseFloat(document.getElementById(id).value); return isFinite(x) && x >= 0 ? x : d; };
-  return { tarifa: v('tarifa', 0.43), desc: Math.min(v('desc', 30), 90) / 100, frod: Math.max(1, v('frod', 1.25)), ffer: Math.max(1, v('ffer', 1.35)),
+  return { tarifa: v('tarifa', 0.31), fixo: v('fixo', 24.41), desc: Math.min(v('desc', 30), 90) / 100, frod: Math.max(1, v('frod', 1.25)), ffer: Math.max(1, v('ffer', 1.35)),
            area: v('area', 0), prod: v('prod', 0), preco: v('preco', 154.75) };
 }
 
+let ROTAS = { 'Toledo': { km: 640, rs_t: 210 }, 'Campo Mourão': { km: 554, rs_t: 205 }, 'Cascavel': { km: 602, rs_t: 210 }, 'Ponta Grossa': { km: 214, rs_t: 87.5 } };
+let ROTAS_MES = 'ago/2026';
+let ANTT = { ccd: 8.2316, cc: 820.34, carga_t: 37, eixos: 7, norma: 'Portaria SUROC nº 22/2026' };
+const pisoT = km => (km * ANTT.ccd + ANTT.cc) / ANTT.carga_t;
+
 function route(m, p) {
-  const roadKm = hav(m, PNG) * p.frod;
-  const road = { km: roadKm, rt: roadKm * p.tarifa, co2: roadKm * EF_ROAD };
+  const obs = ROTAS[m.nome];
+  const roadKm = obs && obs.km ? obs.km : hav(m, PNG) * p.frod;
+  const road = { km: roadKm, rt: obs && obs.rs_t ? obs.rs_t : p.fixo + roadKm * p.tarifa, co2: roadKm * EF_ROAD, piso: pisoT(roadKm), obs: obs && obs.rs_t ? obs.rs_t : null };
   let best = null;
   for (const t of terms) {
     const l1 = m.nome === t.nome ? 0 : hav(m, t) * p.frod;
     const l2 = hav(t, PNG) * p.ffer;
-    const rt = l1 * p.tarifa + l2 * p.tarifa * (1 - p.desc);
+    const rt = p.fixo + l1 * p.tarifa + l2 * p.tarifa * (1 - p.desc);
     if (!best || rt < best.rt) best = { term: t.nome, l1, l2, km: l1 + l2, rt, co2: l1 * EF_ROAD + l2 * EF_RAIL };
   }
   return { road, rail: best };
@@ -275,7 +288,7 @@ function renderProd() {
     set('r-perda', brl.format(0)); set('r-lead', 'A soja já está no porto: não há frete até o embarque.');
   } else {
     set('r-perda', brl.format(roadSc));
-    set('r-lead', 'Só de caminhão, ' + pct.format(roadSc / p.preco) + ' do preço de Paranaguá vai para o frete. O produtor de ' + m.nome + ' recebe cerca de ' + brl.format(Math.max(0, p.preco - roadSc)) + ' por saca. Com o trem a partir de ' + rail.term + ', o frete cai para ' + brl.format(railSc) + '.');
+    set('r-lead', 'Só de caminhão, ' + pct.format(roadSc / p.preco) + ' do preço de Paranaguá vai para o frete. O produtor de ' + m.nome + ' recebe cerca de ' + brl.format(Math.max(0, p.preco - roadSc)) + ' por saca. O piso legal da ANTT para essa distância é ' + brl.format(road.piso * 0.06) + ' por saca. ' + (railSc < roadSc ? 'Com o trem a partir de ' + rail.term + ', o frete cai para ' + brl.format(railSc) + '.' : 'Daqui, o caminhão direto sai mais barato que desviar até um terminal ferroviário.'));
   }
   const f = Math.min(1, roadSc / p.preco);
   $('bar-liq').style.width = ((1 - f) * 100) + '%'; $('bar-frete').style.width = (f * 100) + '%';
@@ -286,6 +299,8 @@ function renderProd() {
   set('o-road-sc', brl.format(roadSc));
   set('o-road-tot', brl0.format(road.rt * t));
   set('o-road-co2', tCO2(road.co2 * t));
+  set('o-road-piso', m.nome === 'Paranaguá' ? '—' : brl.format(road.piso * 0.06));
+  if (road.obs) set('o-road-route', m.nome + ' → Paranaguá pela rodovia · frete observado pela Conab (' + ROTAS_MES + ')');
 
   set('o-rail-term', rail.term);
   set('o-rail-route', (rail.l1 > 0 ? n0.format(rail.l1) + ' km de caminhão até ' + rail.term + ', ' : 'Embarque direto em ' + rail.term + ', ') + n0.format(rail.l2) + ' km de trem');
@@ -446,7 +461,8 @@ renderProd();
 
 // ---------- dados atualizáveis (data/*.json) ----------
 const fmtData = s => { const [y, m, d] = String(s).split('-'); return d && m && y ? d + '/' + m + '/' + y : s; };
-let editado = { preco: false, tarifa: false };
+let editado = { preco: false, tarifa: false, fixo: false };
+$('fixo').addEventListener('input', () => { editado.fixo = true; });
 $('preco').addEventListener('input', () => { editado.preco = true; });
 $('tarifa').addEventListener('input', () => { editado.tarifa = true; });
 async function carregarDados() {
@@ -457,8 +473,15 @@ async function carregarDados() {
   } catch (e) {}
   try {
     const r = await fetch('data/frete.json', { cache: 'no-cache' });
-    if (r.ok) { const f = await r.json(); const v = Number(f.tarifa);
-      if (v > 0 && !editado.tarifa) { $('tarifa').value = v.toFixed(2); if (f.referencia) set('tarifa-hint', f.referencia); } }
+    if (r.ok) { const f = await r.json();
+      const pk = Number(f.por_km), fx = Number(f.fixo);
+      if (pk > 0 && !editado.tarifa) $('tarifa').value = String(Math.round(pk * 10000) / 10000);
+      if (fx >= 0 && isFinite(fx) && !editado.fixo) $('fixo').value = fx.toFixed(2);
+      if (f.referencia) set('tarifa-hint', f.referencia);
+      if (Array.isArray(f.rotas) && f.rotas.length) { const novo = {}; f.rotas.forEach(x => { if (x.origem && Number(x.km) > 0) novo[x.origem] = { km: Number(x.km), rs_t: Number(x.rs_t) || null }; }); if (Object.keys(novo).length) ROTAS = novo; }
+      if (f.mes) { const [yy, mm] = String(f.mes).split('-'); const nomes = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez']; if (mm && nomes[+mm - 1]) ROTAS_MES = nomes[+mm - 1] + '/' + yy; }
+      if (f.antt && Number(f.antt.ccd) > 0 && Number(f.antt.cc) >= 0 && Number(f.antt.carga_t) > 0) ANTT = { ...ANTT, ccd: Number(f.antt.ccd), cc: Number(f.antt.cc), carga_t: Number(f.antt.carga_t), eixos: f.antt.eixos || ANTT.eixos, norma: f.antt.norma || ANTT.norma };
+    }
   } catch (e) {}
   renderProd(); if (!$('pane-gest').hidden) renderGestor();
 }

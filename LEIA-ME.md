@@ -40,7 +40,7 @@ O app lê o preço de `data/cotacao.json`. A leitura automática do site do Cepe
 
 **Usar o botão:** abra o repositório no navegador do celular (ou no app GitHub), vá em **Actions → Atualizar cotação da soja → Run workflow**, preencha o preço (ex.: `154.75`) e a data (ex.: `2026-10-13`) e confirme. Em cerca de 2 minutos todos os celulares com o app recebem o valor novo na próxima vez que abrirem com internet.
 
-Para o frete, edite `data/frete.json` direto no GitHub (ícone de lápis) quando sair um valor novo, por exemplo no boletim logístico mensal da Conab.
+O frete (`data/frete.json`) é atualizado todo mês por uma tarefa agendada do Claude, que lê o Boletim Logístico da Conab, ajusta a parte fixa e o valor por km às rotas do Paraná até Paranaguá e envia o arquivo novo. O piso da ANTT (bloco `antt` do mesmo arquivo) muda poucas vezes por ano: quando sair uma nova portaria, troque `ccd`, `cc`, `norma` e `vigencia`.
 
 ## 4. Mudar o app
 
@@ -49,7 +49,8 @@ Quando você trocar `index.html` ou `sw.js`, abra `sw.js` e aumente a versão na
 ## Fontes e premissas
 
 - Preço: Indicador da Soja Cepea/Esalq – Paranaguá. Cite a fonte ao divulgar.
-- Frete: R$ 230/t na rota Campo Mourão → Paranaguá (TF Agroeconômica via Agrolink, set/2026), convertido em R$ 0,43 por t·km.
+- Frete de mercado: parte fixa + valor por km ajustados às rotas Toledo, Campo Mourão, Cascavel e Ponta Grossa → Paranaguá do Boletim Logístico da Conab (fretes de ago/2026).
+- Piso: preço mínimo da ANTT para granel sólido, 7 eixos (Portaria SUROC nº 22/2026), dividido por 37 t de carga.
 - Ferrovia 30% mais barata por km (Coopavel, 2021). Transbordo não incluído.
 - Emissões: 0,119 kg CO₂/t·km no caminhão e 0,035 no trem (PBMC, 2013, via ESALQ-LOG).
 - Distâncias: linha reta entre as sedes municipais × 1,25 (rodovia) ou × 1,35 (ferrovia). São estimativas, não a quilometragem real.

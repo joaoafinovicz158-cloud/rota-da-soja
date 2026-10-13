@@ -1,4 +1,22 @@
 {
-  "tarifa": 0.43,
-  "referencia": "Calibrado em Campo Mourão → Paranaguá, R$ 230/t (set/2026)"
+  "fixo": 24.41,
+  "por_km": 0.3059,
+  "mes": "2026-08",
+  "referencia": "Ajustado às rotas do Paraná do Boletim Logístico da Conab (fretes de ago/2026)",
+  "fonte": "Conab, Boletim Logístico setembro/2026, Tabela 8 (Paraná)",
+  "rotas": [
+    { "origem": "Toledo", "km": 640, "rs_t": 210.00 },
+    { "origem": "Campo Mourão", "km": 554, "rs_t": 205.00 },
+    { "origem": "Cascavel", "km": 602, "rs_t": 210.00 },
+    { "origem": "Ponta Grossa", "km": 214, "rs_t": 87.50 }
+  ],
+  "antt": {
+    "norma": "Portaria SUROC nº 22/2026",
+    "vigencia": "2026-09-30",
+    "carga": "Granel sólido, tabela A (lotação)",
+    "eixos": 7,
+    "ccd": 8.2316,
+    "cc": 820.34,
+    "carga_t": 37
+  }
 }
