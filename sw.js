@@ -1,5 +1,5 @@
 // Service worker do Rota da Soja PR: funciona offline e busca dados novos quando há internet.
-const VERSAO = 'rota-soja-v2';
+const VERSAO = 'rota-soja-v3';
 const ARQUIVOS = ['./', 'index.html', 'manifest.webmanifest', 'data/cotacao.json', 'data/frete.json',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png'];
 
@@ -16,8 +16,8 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  // Dados: tenta a rede primeiro (cotação nova); sem internet, usa a última salva.
-  if (url.origin === location.origin && url.pathname.includes('/data/')) {
+  // Página e dados: tenta a rede primeiro (versão e cotação novas); sem internet, usa a última salva.
+  if (url.origin === location.origin && (req.mode === 'navigate' || url.pathname.includes('/data/') || url.pathname.endsWith('.html') || url.pathname.endsWith('/'))) {
     e.respondWith(fetch(req).then(r => { const copia = r.clone(); caches.open(VERSAO).then(c => c.put(req, copia)); return r; })
       .catch(() => caches.match(req, { ignoreSearch: true })));
     return;
